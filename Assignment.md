@@ -75,7 +75,27 @@ p.close()
 ## Exercise 3
 ### Vulnerability overview
 
+In this program the vulnerability lies in the fact that there exists a variable `buffer` with size 16 chars/bytes that can be overflown. There also exists an uncalled function `expose_flag()` which is unused, but reveals a piece of information that should be kept secret. The program is equipped with a security mechanism called a stack canary. This security is meant to catch buffer overflows by assigning a randomly generated value to a specific location in the memory, and checking wheter this value stays persistent. If this value gets changed, the program will throw an error, and the exploitation attempt is stopped. The problem with this program is the fact that the stack canary-value can be revealed. In line 21 and 22 the variable `exploration_offset` is added to `buffer`, which is a pointer. This is called pointer arithmetic and because we can assign any value to `exploration_offset` with `scanf()` in line 18, we can essentially have a look at the value at any memory address in the stack. This is also part of the vulerability in this program, because it makes it possible to retrieve the value of the stack canary.  
+
 ### How to exploit
+
+To exploit this vulnerability we first need to understand where the stack canary is located. By running the program with gdb it is possible to see where the canary is located by investigating wich memory locations near the `buffer` is changed over different reruns of the program. The amount of bytes from `buffer` to the stack canary must be typed in as the `exploration_offset` to reveal the value of the canary. Now we simply fetch the value of the canary, and create the payload which we assign to `buffer`. The payload must consist of:
+
+<p>
+&nbsp;&nbsp;&nbsp;&nbsp;Junk data to fill the buffer<br>
++ Junk data to fill the offset to the stack<br>
++ The value of the stack canary <br>
++ The offset to the return pointer<br>
++ The memory address of the `expose_flag()` function<br>
+= payload to exploit the vulnerability and expose the flag
+</p>
+
+By inserting this payload we overwrite the return pointers value with a reference to the `expose_flag()` function. The function therefore gets called, and the flag is exposed!
+
+**Hvordan finne return pointer offset**
+
+**Hvilken memory location er expose_flag() på**
+
 
 ### Code
 ```py
