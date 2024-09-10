@@ -9,7 +9,7 @@
 ## Exercise 1
 ### Vulnerability overview
 
-The vulnerability of the code in exercise 1 lies in the fact that the variable `locals.buffer` is 16 char/bytes long, but the `fgets()` function on line 15 reads up to 1024 chars/bytes and assigns it to buffer. The vulnerability lies in the discrepancy between how much information the `locals.buffer` can hold and how much information the `fgets()` func can assign to it. Because the `locals.buffer` is the first property of a struct, the next property, `locals.secret` is very vulnerable. Conveniently this variable also is responsible for some important logic restricting the user from reaching the flag.
+The vulnerability of the code in exercise 1 lies in the fact that the variable `locals.buffer` is 16 chars/bytes long, but the `fgets()` function on line 15 reads up to 1024 chars/bytes and assigns it to buffer. The vulnerability lies in the discrepancy between how much information the `locals.buffer` can hold and how much information the `fgets()` func can assign to it. Because the `locals.buffer` is the first property of a struct, the next property, `locals.secret` is very vulnerable. Conveniently this variable also is responsible for some important logic restricting the user from reaching the flag.
 
 ### How to exploit
 
