@@ -11,7 +11,7 @@
 
 ### Vulnerability overview
 
-The vulnerability of the code in exercise 1 lies in the fact that the size of `locals.buffer` is 16 bytes, but the `fgets()` function on line 15 reads up to 1024 bytes and assigns it to buffer. The vulnerabilitiy arises after the 16 byte buffer is filled, the rest of the input may overflow into adjecent memory. The `locals` structure is constructed by two properties; firstly `locals.buffer` then `locals.secret`. We can use these two facts together to overflow the buffer and overwrite the data stored in `locals.secret`. This is crucial as `locals.secret` is responsible for some important logic restricting the user from reaching the flag.
+The vulnerability of the code in exercise 1 lies in the fact that the size of `locals.buffer` is 16 bytes, but the `fgets()` function on line 15 reads up to 1024 bytes and assigns it to buffer. The vulnerability arises after the 16 byte buffer is filled, the rest of the input may overflow into adjacent memory. The `locals` structure is constructed by two properties; firstly `locals.buffer` then `locals.secret`. We can use these two facts together to overflow the buffer and overwrite the data stored in `locals.secret`. This is crucial as `locals.secret` is responsible for some important logic restricting the user from reaching the flag.
 
 ### How to exploit
 
@@ -39,13 +39,13 @@ remote.close()
 
 ### Secret
 
-#### {inf226_2024_m4yb3_y0u_1ik3_t34_b3tt3r}
+**{inf226_2024_m4yb3_y0u_1ik3_t34_b3tt3r}**
 
 ## Exercise 2
 
 ### Vulnerability overview
 
-Similarly to Exercise 1, the vulnerability in the code is the possibility of buffer overflow. The `locals` struct contains a 32 bytes large buffer `locals.buffer`, and a function pointer `locals.func_pt`. Later in the program, the function pointer `locals.func_pt` is assigned to point to the `pick_animal` function, and lastly, `locals.func_pt` is called. However, the possibility to overflow `locals.buffer`, and overwrite `locals.func_pt` represents a serious vulnerability. We can redirect the execution of `locals.func_pt` to an unintended function, namely `expose_flag`. `expose_flag` also happens to expose some information which should be kept secret...
+Similarly to Exercise 1, the vulnerability in the code is the possibility of buffer overflow. The `locals` struct contains a 32 bytes large buffer `locals.buffer`, and a function pointer `locals.func_pt`. Later in the program, the function pointer `locals.func_pt` is assigned to point to the `pick_animal()` function, and lastly, `locals.func_pt` is called. However, the possibility to overflow `locals.buffer`, and overwrite `locals.func_pt` represents a serious vulnerability. We can redirect the execution of `locals.func_pt` to an unintended function, namely `expose_flag()`. `expose_flag()` also happens to expose some information which should be kept secret...
 
 ### How to exploit
 
@@ -83,7 +83,7 @@ In this program the vulnerability lies in the fact that there exists a variable 
 
 ### How to exploit
 
-To exploit the vulenrability, firstly we need to locate the stack canary. This can be done using gdb by observing which memory addresses near the buffer change over several reruns. We found the value to be 24 bytes, which we will use as the `exploration_offset`. Using this value, we can reveal the value of the canary, which will be used to create a payload. Furthermore we need to use objdump to find the memory address of the `expose_flag` function. Here we need to locate the `movq` instruction, since the `movq` instruction makes sure that the correct address is loaded into the instruction pointer, allowing us the control the execution flow.  and create a payload which we assing to `buffer`. The payload must consist of:
+To exploit the vulnerability, firstly we need to locate the stack canary. This can be done using gdb by observing which memory addresses near the buffer change over several reruns. We found the the stack canary to be located 24 bytes after the `buffer` variable on the stack. We therefore use the value 24 as the `exploration_offset`. Using this value, we can reveal the value of the canary, which will be used to create a payload. Furthermore we need to use objdump to find the memory address of the `expose_flag` function. Here we need to locate the `movq` instruction, since the `movq` instruction makes sure that the correct address is loaded into the instruction pointer, allowing us the control the execution flow.  and create a payload which we assign to `buffer`. The payload must consist of:
 
 <p>
 &nbsp;&nbsp;&nbsp;&nbsp;Junk data to fill the buffer<br>
