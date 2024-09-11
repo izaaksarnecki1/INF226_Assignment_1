@@ -4,6 +4,7 @@
         "bufferoverflow",
         "ffee",
         "fgets",
+        "movq",
         "recvall",
         "recvline",
         "scanf",
