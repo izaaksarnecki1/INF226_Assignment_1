@@ -49,7 +49,7 @@ Similarly to Exercise 1, the vulnerability in the code is the possibility of buf
 
 ### How to exploit
 
-Here the idea is to get the `expose_flag` function to be called, even though it is never really called by just running `main()`. We can for example use objdump to find the correct memory address of the `expose_flag` function. Thereafter, we fill the `locals.buffer` variable with 32 bytes of junk data (e.g. ('A' * 32)) and write the memory address of `expose_flag()` into `locals.func_pt`. This entails that the function pointer `locals.func_pt` will point to `expose_flag` instead of `pick_animal`. When `locals.func_pt` is called on line 42, `expose_flag` will be called, and the flag will be revealed!
+Here the idea is to get the `expose_flag()` function to be called, even though it is never really called by just running `main()`. Since we have access to the binary file, we can for example use `objdump -d <filename>` to find the correct memory address of the `expose_flag()` function. Thereafter, we fill the `locals.buffer` variable with 32 bytes of junk data (e.g. ('A' * 32)) and write the memory address of `expose_flag()` into `locals.func_pt`. This entails that the function pointer `locals.func_pt` will point to `expose_flag` instead of `pick_animal`. When `locals.func_pt` is called on line 42, `expose_flag` will be called, and the flag will be revealed!
 
 ### Code
 
@@ -90,7 +90,7 @@ To exploit the vulnerability, firstly we need to locate the stack canary. This c
 + Junk data to fill the offset to the stack<br>
 + The value of the stack canary <br>
 + The offset to the return pointer<br>
-+ The memory address of the `expose_flag` function<br>
++ The memory address of the `expose_flag()` function<br>
 = payload to exploit the vulnerability and expose the flag
 </p>
 
