@@ -15,7 +15,7 @@ The vulnerability of the code in exercise 1 lies in the fact that the size of `l
 
 ### How to exploit
 
-The idea is to overwrite the `locals.buffer` and assign another value to the `locals.secret` variable. We should assign the value hexadecimal value, 'c0ffee' to the variable in order to access the part of the program that exploits the flag. We know that the properties of a struct are located after each other in memory. To exploit this program, we can fill `locals.buffer` variable with junk data, e.g. `('A' * 16)` when asked for input. Additionally, we can overflow the buffer with 0xc0ffee which gets assigned to `locals.secret`. This grants us access to the flag!
+The idea is to overwrite the `locals.buffer` and assign another value to the `locals.secret` variable. We should assign the value hexadecimal value, 'c0ffee' to the variable in order to access the part of the program that exploits the flag. We know that the properties of a struct are located after each other in memory. To exploit this program, we can fill `locals.buffer` variable with junk data, e.g. `('A' * 16)` when asked for input. Additionally, we can overflow the buffer with `0xc0ffee` which gets assigned to `locals.secret`. This grants us access to the flag!
 
 ### Code
 
@@ -85,24 +85,24 @@ In this program the vulnerability lies in the fact that there exists a variable 
 
 To exploit the vulnerability, firstly we need to locate the stack canary. This can be done using gdb by observing which memory addresses near the buffer change over several reruns. We found the the stack canary to be located 24 bytes after the `buffer` variable on the stack. We therefore use the value 24 as the `exploration_offset`. Using this value, we can reveal the value of the canary, which will be used to create a payload. Furthermore we need to use objdump to find the memory address of the `expose_flag` function. Here we need to locate the `movq` instruction, since the `movq` instruction makes sure that the correct address is loaded into the instruction pointer, and create a payload which we assign to `buffer`. The payload must consist of:
 
-<p>
-&nbsp;&nbsp;&nbsp;&nbsp;Junk data to fill the buffer<br>
-+ Junk data to fill the offset to the stack canary<br>
-+ The value of the stack canary <br>
-+ The offset to the return pointer<br>
-+ The memory address of the `expose_flag()` function<br>
-= payload to exploit the vulnerability and expose the flag
-</p>
+``` 
+  Junk data to fill the buffer 
++ Junk data to fill the offset to the stack 
++ The value of the stack canary 
++ The offset to the return pointer 
++ The memory address of the `expose_flag` function 
+= payload to exploit the vulnerability and expose the flag 
+```
 
 We find the address of the return pointer by running `info frame` while running the program in gdb. After finding the address of the return pointer we can calculate the total distance from the buffer to the return pointer. We find that it is 40 bytes. We can then determine the remaining offset from the canary to the return pointer.
 
-<p>
-&nbsp;&nbsp;&nbsp;&nbsp;Bufferfill (16 bytes)<br>
-+ Offset to canary (8 bytes)<br>
-+ Canary value (8 bytes)<br>
-+ Remaining offset to return pointer (8 bytes)<br>
+```
+  Bufferfill (16 bytes)
++ Offset to canary (8 bytes)
++ Canary value (8 bytes)
++ Remaining offset to return pointer (8 bytes)
 = Distance from buffer to return pointer (40 bytes)
-</p>
+```
 
 By inserting this payload we overwrite the return pointers value with a reference to the `expose_flag` function. The function therefore gets called, and the flag is exposed!
 
