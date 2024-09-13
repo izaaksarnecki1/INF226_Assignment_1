@@ -79,19 +79,29 @@ remote.close()
 
 ### Vulnerability overview
 
-In this program the vulnerability lies in the fact that there exists a variable `buffer` with size 16 bytes that can be overflown. There also exists a function `expose_flag` which is unused, but reveals a piece of information that should be kept secret. The program is equipped with a security mechanism called a stack canary. This mechanism is meant to catch buffer overflows by assigning a randomly generated value to a specific location in the memory, and checking whether this value remains unchanged. If this value gets changed, the program will throw an error, and the exploitation attempt is stopped. The problem with this program is the fact that the stack canary-value can be revealed. In line 22 the variable `exploration_offset` is added to `buffer`, which is a pointer. This is called pointer arithmetic and because we can assign any value to `exploration_offset` with the `scanf()` function on line 18, we can essentially have a look at the value at any memory address in the stack. This is also part of the vulnerability in this program, because it makes it possible to retrieve the value of the stack canary.
+In this program the vulnerability lies in the fact that there exists a variable `buffer` with size 16 bytes that can be overflown. There also exists a function `expose_flag` which is unused, but reveals a piece of information that should be kept secret. The program is equipped with a security mechanism called a stack canary. This mechanism is meant to catch buffer overflows by assigning a randomly generated value to a specific location in the memory, and checking whether this value remains unchanged. If this value gets changed, the program will throw an error, and the exploitation attempt is stopped. The problem with this program is the fact that the stack canary-value can be revealed. In line 22 the variable `exploration_offset` is added to `buffer`, which is a pointer. This is called pointer arithmetic and because we can assign any value to `exploration_offset` with the `scanf` function on line 18, we can essentially have a look at the value at any memory address in the stack. This is also part of the vulnerability in this program, because it makes it possible to retrieve the value of the stack canary.
 
 ### How to exploit
 
-To exploit the vulnerability, firstly we need to locate the stack canary. This can be done using gdb by observing which memory addresses near the buffer change over several reruns. We found the the stack canary to be located 24 bytes after the `buffer` variable on the stack. We therefore use the value 24 as the `exploration_offset`. Using this value, we can reveal the value of the canary, which will be used to create a payload. Furthermore we need to use objdump to find the memory address of the `expose_flag` function. Here we need to locate the `movq` instruction, since the `movq` instruction makes sure that the correct address is loaded into the instruction pointer, allowing us the control the execution flow.  and create a payload which we assign to `buffer`. The payload must consist of:
+To exploit the vulnerability, firstly we need to locate the stack canary. This can be done using gdb by observing which memory addresses near the buffer change over several reruns. We found the the stack canary to be located 24 bytes after the `buffer` variable on the stack. We therefore use the value 24 as the `exploration_offset`. Using this value, we can reveal the value of the canary, which will be used to create a payload. Furthermore we need to use objdump to find the memory address of the `expose_flag` function. Here we need to locate the `movq` instruction, since the `movq` instruction makes sure that the correct address is loaded into the instruction pointer, and create a payload which we assign to `buffer`. The payload must consist of:
 
 <p>
 &nbsp;&nbsp;&nbsp;&nbsp;Junk data to fill the buffer<br>
-+ Junk data to fill the offset to the stack<br>
++ Junk data to fill the offset to the stack canary<br>
 + The value of the stack canary <br>
 + The offset to the return pointer<br>
 + The memory address of the `expose_flag()` function<br>
 = payload to exploit the vulnerability and expose the flag
+</p>
+
+We find the address of the return pointer by running `info frame` while running the program in gdb. After finding the address of the return pointer we can calculate the total distance from the buffer to the return pointer. We find that it is 40 bytes. We can then determine the remaining offset from the canary to the return pointer.
+
+<p>
+&nbsp;&nbsp;&nbsp;&nbsp;Bufferfill (16 bytes)<br>
++ Offset to canary (8 bytes)<br>
++ Canary value (8 bytes)<br>
++ Remaining offset to return pointer (8 bytes)<br>
+= Distance from buffer to return pointer (40 bytes)
 </p>
 
 By inserting this payload we overwrite the return pointers value with a reference to the `expose_flag` function. The function therefore gets called, and the flag is exposed!
@@ -106,7 +116,7 @@ port = '7003'
 
 buffer_to_canary_offset = b'24'
 bufferfill = b'A' * int(buffer_to_canary_offset)
-canary_to_return_p_offset = b'B' * 8 * 1
+canary_to_return_p_offset = b'B' * 8
 expose_flag_adr = pwn.p64(0x4011a7)
 
 remote = pwn.remote(target, port)
@@ -120,7 +130,8 @@ print(read_canary)
 
 canary_val = pwn.p64(int(read_canary, 16))
 
-payload = bufferfill + canary_val + canary_to_return_p_offset + expose_flag_adr
+payload = bufferfill + canary_val + canary_to_return_p_offset  
+          + expose_flag_adr
 
 remote.sendline(payload)
 
@@ -136,11 +147,11 @@ remote.close()
 
 ### Vulnerability overview
 
-As in the previous tasks, this program also contains a buffer overflow vulnerability. Here specifically, we can overwrite the value of the `input_wrapper.identifier` pointer. Additionally, the `offset` variable is determined by user input, and with some pointer arithmetic, we can find the true value of the `secret` variable. By finding the value of the `secret` variable, we can overwrite the value stored in `input_wrapper.identifier`. This allows us to bypass a check which will expose the desired flag. 
+As in the previous tasks, this program also contains a buffer overflow vulnerability. Here specifically, we can overwrite the value of the `input_wrapper.identifier` pointer when prompted for input for the `input_wrapper.buffer`. Additionally, the `offset` variable is determined by user input, and as line 25 performs some pointer arithmetic, we can find the true value of the `secret` variable. By finding the value of the `secret` variable, we can overwrite the value stored in `input_wrapper.identifier`. This allows us to bypass a check which will expose the desired flag. 
 
 ### How to exploit
 
-We see that this program starts by the `main()` function checking whether the argument count (`argc`) is less than two, and if so, terminates the program. If the argument count is 2 or higher the program runs the `program` function. Upon connecting to the server where the program is ran, the user is prompted with "Welcome, you have access to this program as: Guest". This confirms that the `program` function has been called, meaning that `argc` is greater than one, and the second argument (`argv[1]`) is passed as the `secret` parameter into the `program` function. In C, the first six function arguments are typically passed via registers, but the 7th argument is pushed onto the stack. Conveniently, the 7th argument is `secret`. This is important, as it entails that the value of `secret` resides on the stack. The vulnerability is exploited by manipulating the `offset` variable. With the correct offset value, pointer arithmetic allows us to reveal the contents of memory near `input_wrapper.buffer`. Using a debugger, in this case gdb, we discover that the `secret` argument is stored 8 bytes before `input_wrapper.buffer`. Now we can set the `offset` to `-8`, and the program will print the value of `secret` from the stack on line 25. With knowledge of the value of `secret`, we can exploit the buffer overflow. When prompted for input again, we input 16 bytes of junk data (the size of `input_wrapper.buffer`), followed by the newly discovered value of secret. This will overwrite the `input_wrapper.identifier` pointer with the value of `secret`. Now that the `identifier` is overwritten with `secret`, the program will pass the `strcmp` check (since `input_wrapper.identifier` now points to the same string as `secret`), allowing us to retrieve the flag!
+We see that this program starts by the `main()` function checking whether the argument count (`argc`) is less than two, and if so, terminates the program. If the argument count is 2 or higher the program runs the `program` function. Upon connecting to the server where the program is ran, the user is prompted with "Welcome, you have access to this program as: Guest". This confirms that the `program` function has been called, meaning that `argc` is greater than one, and the second argument (`argv[1]`) is passed as the `secret` parameter into the `program` function. In C, the first six function arguments are typically passed via registers, but the 7th argument is pushed onto the stack. Conveniently, the 7th argument is `secret`. This is important, as it entails that the value of `secret` resides on the stack. The vulnerability is exploited by manipulating the `offset` variable. With the correct offset value, pointer arithmetic allows us to reveal the contents of memory near `input_wrapper.buffer`. Using a debugger, in this case gdb, we discover that the `secret` argument is stored 48 bytes before `input_wrapper.buffer`. Now we can set the `offset` to `-48`, and the program will print the value of `secret` from the stack on line 25. With knowledge of the value of `secret`, we can exploit the buffer overflow. When prompted for input again, we input 16 bytes of junk data (the size of `input_wrapper.buffer`), followed by the newly discovered value of secret. This will overwrite the `input_wrapper.identifier` pointer with the value of `secret`. Now that the `identifier` is overwritten with `secret`, the program will pass the `strcmp` check (since `input_wrapper.identifier` now points to the same string as `secret`), allowing us to retrieve the flag!
 
 ### Code
 
