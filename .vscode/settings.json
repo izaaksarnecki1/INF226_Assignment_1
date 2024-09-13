@@ -9,6 +9,7 @@
         "recvline",
         "scanf",
         "sendline",
+        "strcmp",
         "struct"
     ]
 }
